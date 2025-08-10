@@ -90,6 +90,21 @@ function matchesAdTracker(url) {
   return AD_TRACKER_PATTERNS.some(p => u.includes(p))
 }
 
+function isLikelyJavascriptUrl(urlString) {
+  try {
+    const u = new URL(urlString)
+    const pathname = u.pathname.toLowerCase()
+    if (pathname.endsWith('.js')) return true
+    // Heuristic: common JS file indicators in path or query
+    if (pathname.includes('.js?') || pathname.includes('/js/')) return true
+    const q = u.search.toLowerCase()
+    if (q.includes('format=js') || q.includes('type=js') || q.includes('mime=application/javascript')) return true
+    return false
+  } catch {
+    return false
+  }
+}
+
 function jsLikeContentType(ct) {
   if (!ct) return false
   const v = ct.toLowerCase().split(';')[0].trim()
@@ -104,6 +119,8 @@ function suggestFixForReason(reason, context) {
       return 'Load the script over HTTPS or proxy it through a secure endpoint.'
     case 'Ad/Tracker Blocker':
       return 'Rename the resource path or host, or serve from a neutral CDN path.'
+    case 'DevTools Block':
+      return 'In DevTools, uncheck "Block request URL" for this resource or clear the Blocked URLs list.'
     case 'Network Error':
       return 'Verify DNS/hosting/CDN availability and correct URL; check status codes and timeouts.'
     case 'Cross-Origin/MIME':
@@ -144,12 +161,13 @@ chrome.webNavigation.onCommitted.addListener(details => {
 
 chrome.webRequest.onBeforeRequest.addListener(
   details => {
-    if (details.type !== 'script') return
-    if (!details.tabId || details.tabId < 0) return
+    if (details.tabId === -1) return
     if (shouldIgnore(details.url)) return
+    const consider = details.type === 'script' || isLikelyJavascriptUrl(details.url)
+    if (!consider) return
     requestMetaById.set(details.requestId, { url: details.url, tabId: details.tabId, startedAt: nowTs() })
   },
-  { urls: ['<all_urls>'], types: ['script'] },
+  { urls: ['<all_urls>'] },
   ['blocking']
 )
 
@@ -174,9 +192,15 @@ chrome.webRequest.onHeadersReceived.addListener(
 
 chrome.webRequest.onCompleted.addListener(
   async details => {
-    if (details.type !== 'script') return
     const meta = requestMetaById.get(details.requestId)
-    if (!meta) return
+    const isScriptLike = details.type === 'script' || (meta && isLikelyJavascriptUrl(meta.url)) || isLikelyJavascriptUrl(details.url)
+    if (!isScriptLike) return
+
+    const tabId = meta?.tabId ?? details.tabId
+    if (typeof tabId !== 'number' || tabId < 0) return
+
+    const url = meta?.url ?? details.url
+
     const headersInfo = responseHeadersByRequestId.get(details.requestId) || { headers: {} }
     const headers = headersInfo.headers || {}
 
@@ -200,16 +224,16 @@ chrome.webRequest.onCompleted.addListener(
     }
 
     // Ad/tracker heuristics
-    if (!reason && matchesAdTracker(meta.url)) {
+    if (!reason && matchesAdTracker(url)) {
       reason = 'Ad/Tracker Blocker'
       evidence = 'Matched ad/tracker pattern'
     }
 
     // Mixed content
     if (!reason) {
-      const session = tabIdToSession.get(meta.tabId)
+      const session = tabIdToSession.get(tabId)
       const pageIsHttps = session && session.origin && session.origin.startsWith('https:')
-      if (pageIsHttps && isHttp(meta.url)) {
+      if (pageIsHttps && isHttp(url)) {
         reason = 'Mixed Content'
         evidence = 'HTTPS page attempted to load HTTP script'
       }
@@ -218,7 +242,7 @@ chrome.webRequest.onCompleted.addListener(
     const status = reason ? 'blocked' : 'executed'
 
     const record = {
-      url: meta.url,
+      url,
       reason: reason || 'Executed',
       evidence,
       suggestedFix: reason ? suggestFixForReason(reason, reasonContext) : '',
@@ -226,7 +250,7 @@ chrome.webRequest.onCompleted.addListener(
       ts: nowTs()
     }
 
-    await addRecordToCurrentBucket(meta.tabId, record)
+    await addRecordToCurrentBucket(tabId, record)
 
     // Cleanup
     requestMetaById.delete(details.requestId)
@@ -237,23 +261,34 @@ chrome.webRequest.onCompleted.addListener(
 
 chrome.webRequest.onErrorOccurred.addListener(
   async details => {
-    if (details.type !== 'script') return
     const meta = requestMetaById.get(details.requestId)
-    if (!meta) return
+    const isScriptLike = details.type === 'script' || (meta && isLikelyJavascriptUrl(meta.url)) || isLikelyJavascriptUrl(details.url)
+    if (!isScriptLike) return
 
-    if (shouldIgnore(meta.url)) return
+    const tabId = meta?.tabId ?? details.tabId
+    if (typeof tabId !== 'number' || tabId < 0) return
+
+    const url = meta?.url ?? details.url
+
+    if (shouldIgnore(url)) return
 
     let reason = 'Network Error'
     let evidence = details.error
 
-    // Heuristic: popular ad blockers cause ERR_BLOCKED_BY_CLIENT
-    if (String(details.error || '').includes('ERR_BLOCKED_BY_CLIENT') || matchesAdTracker(meta.url)) {
-      reason = 'Ad/Tracker Blocker'
-      evidence = details.error || 'Matched ad/tracker pattern'
+    const isErrBlockedByClient = String(details.error || '').includes('ERR_BLOCKED_BY_CLIENT')
+
+    if (isErrBlockedByClient) {
+      if (matchesAdTracker(url)) {
+        reason = 'Ad/Tracker Blocker'
+        evidence = details.error || 'Matched ad/tracker pattern'
+      } else {
+        reason = 'DevTools Block'
+        evidence = 'ERR_BLOCKED_BY_CLIENT (likely DevTools Blocked URLs)'
+      }
     }
 
     const record = {
-      url: meta.url,
+      url,
       reason,
       evidence,
       suggestedFix: suggestFixForReason(reason),
@@ -261,7 +296,7 @@ chrome.webRequest.onErrorOccurred.addListener(
       ts: nowTs()
     }
 
-    await addRecordToCurrentBucket(meta.tabId, record)
+    await addRecordToCurrentBucket(tabId, record)
 
     requestMetaById.delete(details.requestId)
     responseHeadersByRequestId.delete(details.requestId)
