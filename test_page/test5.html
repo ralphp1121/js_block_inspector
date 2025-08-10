@@ -1,0 +1,11 @@
+<!doctype html>
+<title>DevTools block</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/lodash.js/4.17.21/lodash.min.js"></script>
+<span>
+    <ul>
+        <li>In DevTools Network tab, right‑click the request → “Block request URL”, then reload.</li>
+        <li>Expected: Reason = “DevTools Block”, Evidence includes “ERR_BLOCKED_BY_CLIENT”.</li>
+        <span>Optional: If you can host a page over HTTPS and reference an HTTP script, you’ll get Mixed Content:</span>
+        <li>Expected: Reason = “Mixed Content”, Evidence mentions HTTPS page attempted to load HTTP script.</li>
+    </ul>
+</span>
