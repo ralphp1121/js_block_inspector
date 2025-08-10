@@ -1,0 +1,1 @@
+try{window.addEventListener("securitypolicyviolation",e=>{const i={blockedURI:e.blockedURI,effectiveDirective:e.effectiveDirective,violatedDirective:e.violatedDirective,originalPolicy:e.originalPolicy,sourceFile:e.sourceFile,lineNumber:e.lineNumber,columnNumber:e.columnNumber};chrome.runtime.sendMessage({type:"csp-violation",payload:i})})}catch{}

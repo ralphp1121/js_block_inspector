@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>JS Block Inspector</title>
+    <script type="module" crossorigin src="/popup.js"></script>
+    <link rel="stylesheet" crossorigin href="/popup.css">
+  </head>
+  <body class="min-w-[380px] max-w-[420px] bg-gray-50 text-gray-900">
+    <div id="app" class="p-3 space-y-3">
+      <div class="flex items-center justify-between">
+        <h1 class="text-base font-semibold">JS Block Inspector</h1>
+        <div class="flex items-center gap-2">
+          <button id="btn-export-json" class="px-2 py-1 text-xs bg-blue-600 text-white rounded">Export JSON</button>
+          <button id="btn-export-csv" class="px-2 py-1 text-xs bg-emerald-600 text-white rounded">Export CSV</button>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-2">
+        <input id="filter-input" placeholder="Filter by URL or reason" class="flex-1 px-2 py-1 text-sm border rounded w-full" />
+      </div>
+
+      <div class="text-xs text-gray-600" id="session-meta"></div>
+
+      <div class="border rounded bg-white overflow-hidden">
+        <table class="min-w-full text-xs" id="records-table">
+          <thead class="bg-gray-100">
+            <tr>
+              <th class="text-left p-2">Time</th>
+              <th class="text-left p-2">URL</th>
+              <th class="text-left p-2">Reason</th>
+              <th class="text-left p-2">Fix</th>
+              <th class="text-left p-2">Actions</th>
+            </tr>
+          </thead>
+          <tbody id="records-tbody"></tbody>
+        </table>
+      </div>
+
+      <div class="text-[10px] text-gray-500">Tip: Right-click a fix to copy, click ⋮ to ignore domain.</div>
+    </div>
+  </body>
+</html> 

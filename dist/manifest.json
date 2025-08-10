@@ -1,0 +1,33 @@
+{
+  "manifest_version": 3,
+  "name": "JS Block Inspector",
+  "version": "0.1.0",
+  "description": "Detects blocked JavaScript tag scripts, reports reasons, and suggests actionable fixes.",
+  "permissions": [
+    "webRequest",
+    "webRequestBlocking",
+    "storage",
+    "scripting",
+    "downloads",
+    "webNavigation",
+    "tabs"
+  ],
+  "host_permissions": [
+    "<all_urls>"
+  ],
+  "background": {
+    "service_worker": "background.js",
+    "type": "module"
+  },
+  "action": {
+    "default_title": "JS Block Inspector",
+    "default_popup": "popup.html"
+  },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["content.js"],
+      "run_at": "document_start"
+    }
+  ]
+} 

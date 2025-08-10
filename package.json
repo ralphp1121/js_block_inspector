@@ -1,0 +1,29 @@
+{
+  "name": "js_block_inspector",
+  "version": "0.1.0",
+  "description": "Chrome MV3 extension to detect blocked JS tag scripts, report reasons, and suggest fixes.",
+  "main": "index.js",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "watch": "vite build --watch",
+    "test": "echo \"No tests yet\" && exit 0"
+  },
+  "keywords": [
+    "chrome-extension",
+    "mv3",
+    "javascript",
+    "csp",
+    "webrequest"
+  ],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4.1.11",
+    "autoprefixer": "^10.4.21",
+    "postcss": "^8.5.6",
+    "tailwindcss": "^4.1.11",
+    "vite": "^7.1.1",
+    "vite-plugin-static-copy": "^3.1.1"
+  }
+}
