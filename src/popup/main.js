@@ -41,16 +41,64 @@ async function downloadText(filename, text) {
 
 function render(records) {
   const tbody = $('#records-tbody')
-  tbody.innerHTML = ''
+  tbody.textContent = ''
   for (const rec of records) {
     const tr = document.createElement('tr')
-    tr.innerHTML = `
-      <td class="p-2 align-top whitespace-nowrap">${formatTime(rec.ts)}</td>
-      <td class="p-2 align-top break-all max-w-[180px]">${rec.url}</td>
-      <td class="p-2 align-top"><span class="px-1 py-0.5 rounded text-white ${rec.status === 'blocked' ? 'bg-red-600' : 'bg-gray-500'}">${rec.reason}</span><div class="text-[10px] text-gray-600 mt-1">${rec.evidence || ''}</div></td>
-      <td class="p-2 align-top break-all max-w-[160px]"><button class="copy-fix px-1 py-0.5 bg-gray-200 rounded" data-fix="${(rec.suggestedFix || '').replace(/\"/g, '&quot;')}">Copy</button> <div class="text-[10px] text-gray-600 mt-1">${rec.suggestedFix || ''}</div></td>
-      <td class="p-2 align-top"><button class="ignore-domain text-xs text-blue-700 underline" data-url="${rec.url}">Ignore domain</button></td>
-    `
+
+    const tdTime = document.createElement('td')
+    tdTime.className = 'p-2 align-top whitespace-nowrap'
+    tdTime.textContent = formatTime(rec.ts)
+    tr.appendChild(tdTime)
+
+    const tdUrl = document.createElement('td')
+    tdUrl.className = 'p-2 align-top break-all max-w-[180px]'
+    tdUrl.textContent = rec.url
+    tr.appendChild(tdUrl)
+
+    const tdReason = document.createElement('td')
+    tdReason.className = 'p-2 align-top'
+
+    const reasonSpan = document.createElement('span')
+    reasonSpan.className = `px-1 py-0.5 rounded text-white ${rec.status === 'blocked' ? 'bg-red-600' : 'bg-gray-500'}`
+    reasonSpan.textContent = rec.reason
+    tdReason.appendChild(reasonSpan)
+
+    if (rec.evidence) {
+      const evidenceDiv = document.createElement('div')
+      evidenceDiv.className = 'text-[10px] text-gray-600 mt-1'
+      evidenceDiv.textContent = rec.evidence
+      tdReason.appendChild(evidenceDiv)
+    }
+    tr.appendChild(tdReason)
+
+    const tdFix = document.createElement('td')
+    tdFix.className = 'p-2 align-top break-all max-w-[160px]'
+
+    const copyBtn = document.createElement('button')
+    copyBtn.className = 'copy-fix px-1 py-0.5 bg-gray-200 rounded'
+    copyBtn.textContent = 'Copy'
+    copyBtn.setAttribute('data-fix', rec.suggestedFix || '')
+    tdFix.appendChild(copyBtn)
+
+    if (rec.suggestedFix) {
+      const fixDiv = document.createElement('div')
+      fixDiv.className = 'text-[10px] text-gray-600 mt-1'
+      fixDiv.textContent = rec.suggestedFix
+      tdFix.appendChild(fixDiv)
+    }
+    tr.appendChild(tdFix)
+
+    const tdIgnore = document.createElement('td')
+    tdIgnore.className = 'p-2 align-top'
+
+    const ignoreBtn = document.createElement('button')
+    ignoreBtn.className = 'ignore-domain text-xs text-blue-700 underline'
+    ignoreBtn.textContent = 'Ignore domain'
+    ignoreBtn.setAttribute('data-url', rec.url)
+    tdIgnore.appendChild(ignoreBtn)
+
+    tr.appendChild(tdIgnore)
+
     tbody.appendChild(tr)
   }
 }
@@ -109,4 +157,4 @@ async function main() {
 
 main().catch(err => {
   console.error('Popup init failed', err)
-}) 
+})
